@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار TOFAS المطور - محمود</title>
+    <style>
+        :root { --primary: #0b3c5d; --secondary: #4aa3df; --bg: #f4f7f6; --card: #ffffff; --text: #333; }
+        body.dark-mode { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #1a1a1a; }
+        
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; transition: 0.3s; }
+        
+        /* ضبط ظهور الشاشات فوق بعضها */
+        .screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; overflow-y: auto; }
+        #admin-login-screen, #admin-panel { z-index: 5000 !important; } /* جعل شاشة الأدمن هي الأعلى دائماً */
+
+        .card { background: var(--card); padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 450px; width: 100%; border: 1px solid rgba(0,0,0,0.05); }
+        
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; background: #fff; color: #333; box-sizing: border-box; font-size: 16px; }
+        .dark-mode input { background: #333; color: #fff; border-color: #444; }
+
+        .btn-main { background: var(--secondary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-admin-link { background: none; border: none; color: var(--secondary); cursor: pointer; margin-top: 15px; font-size: 14px; text-decoration: underline; display: inline-block; }
+        
+        .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .code-area { background: #000; color: #00ff00; padding: 15px; border-radius: 10px; direction: ltr; margin: 15px 0; white-space: pre-wrap; font-family: monospace; text-align: left; }
+        
+        .opt-label { background: var(--card); border: 2px solid #eee; padding: 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; margin-bottom: 10px; }
+        .dark-mode .opt-label { border-color: #333; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: var(--text); }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 13px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="dark-mode">
+
+<div id="welcome-screen" class="screen">
+    <div class="card">
+        <h1>اختبار TOFAS 🏆</h1>
+        <p>المطور: <b>محمود</b></p>
+        <input type="text" id="username" placeholder="الاسم الكامل">
+        <input type="text" id="userphone" placeholder="رقم التليفون">
+        <button class="btn-main" onclick="startQuiz()">ابدأ الاختبار</button>
+        <div style="margin-top:10px;">
+            <button onclick="toggleTheme()" class="btn-admin-link" style="text-decoration:none">🌓 تبديل الإضاءة</button> |
+            <button onclick="showAdminLogin()" class="btn-admin-link">⚙️ لوحة الإدارة</button>
+        </div>
+    </div>
+</div>
+
+<div id="admin-login-screen" class="screen hidden">
+    <div class="card">
+        <h2>منطقة الإدارة (سري)</h2>
+        <input type="password" id="adminCode" placeholder="دخل الكود...)">
+        <button class="btn-main" onclick="loginAdmin()">دخول</button>
+        <button onclick="closeScreens()" style="background:none; border:none; color:red; margin-top:15px; cursor:pointer;">إلغاء</button>
+    </div>
+</div>
+
+<div id="admin-panel" class="screen hidden">
+    <div class="card" style="max-width: 600px;">
+        <h2>أهلاً بك يا أدمن محمود 👋</h2>
+        <div style="overflow-x: auto; max-height: 250px;">
+            <table id="resultsTable">
+                <thead>
+                    <tr><th>الاسم</th><th>الفون</th><th>الدرجة</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <button class="btn-main" style="background:#e74c3c; margin-top:20px;" onclick="resetMyAdmin()">حذف نتيجتي فقط للإعادة</button>
+        <button class="btn-main" onclick="closeScreens()">إغلاق اللوحة</button>
+    </div>
+</div>
+
+<div id="result-screen" class="screen hidden">
+    <div class="card">
+        <h2 id="final-name"></h2>
+        <div id="final-score" style="font-size: 50px; color: var(--secondary); margin: 15px 0;"></div>
+        <p id="final-msg"></p>
+        <div id="gift-area" style="color:#2ecc71; font-weight:bold; margin-bottom:15px;"></div>
+        <button class="btn-main" onclick="location.reload()">خروج</button>
+        <button onclick="showAdminLogin()" class="btn-admin-link">⚙️ لوحة الإدارة (إعادة اختبار)</button>
+    </div>
+</div>
+
+<div class="header">
+    <button onclick="prev()" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:5px 15px; border-radius:5px; cursor:pointer;">السابق</button>
+    <div id="timer" style="font-weight:bold;">40:00</div>
+    <button id="nextBtn" onclick="next()" style="background:var(--secondary); border:none; color:white; padding:5px 15px; border-radius:5px; cursor:pointer;">التالي</button>
+</div>
+
+<div style="max-width: 800px; margin: 20px auto; padding: 20px;">
+    <h3 id="qText"></h3>
+    <div class="code-area" id="qCode"></div>
+    <div id="qOptions"></div>
+</div>
+
+<script>
+const quizData = [
+    { q: "ماذا ستكون نتيجة المخرجات؟", code: "let x = 10;\nconsole.log(x);", options: ["5", "10", "x", "Error"], answer: 1 },
+    { q: "ما هي نتيجة الشرط التالي؟", code: "if (5 > 3) {\n  console.log('Yes');\n}", options: ["Yes", "No", "undefined", "true"], answer: 0 },
+    { q: "كيف نعرف متغير ثابت؟", code: "// اختر الكلمة الصحيحة", options: ["let", "var", "const", "set"], answer: 2 },
+    { q: "ما نتيجة Math.max(10, 20)؟", code: "console.log(Math.max(10, 20));", options: ["10", "20", "30", "0"], answer: 1 },
+    { q: "ماذا تفعل console.log؟", code: "// وظيفة الكود", options: ["تنبيه", "طباعة في الكونسول", "حذف بيانات", "جمع أرقام"], answer: 1 },
+    { q: "ما نتيجة 5 + '5'؟", code: "console.log(5 + '5');", options: ["10", "55", "Error", "5"], answer: 1 },
+    { q: "ما نتيجة Math.round(4.7)؟", code: "console.log(Math.round(4.7));", options: ["4", "5", "4.7", "0"], answer: 1 },
+    { q: "ما هو ناتج العملية الحسابية؟", code: "let x = 10 - 2 * 3;", options: ["24", "4", "10", "8"], answer: 1 },
+    { q: "كيف نكتب رسالة تنبيه للمستخدم؟", code: "// اختر الطريقة", options: ["alert()", "msg()", "print()", "log()"], answer: 0 },
+    { q: "ماذا ترجع Math.random()؟", code: "// نوع القيمة", options: ["رقم ثابت", "رقم عشوائي", "نص", "تاريخ"], answer: 1 },
+    { q: "ما نتيجة Math.min(1, 5, -2)؟", code: "console.log(Math.min(1, 5, -2));", options: ["1", "5", "-2", "0"], answer: 2 },
+    { q: "ما هي نتيجة x؟", code: "let x = 5;\nx++;", options: ["5", "6", "4", "7"], answer: 1 },
+    { q: "ما نتيجة دمج النصوص؟", code: "console.log('Hi ' + 'محمود');", options: ["Hiمحمود", "Hi محمود", "Error", "Hi"], answer: 1 },
+    { q: "ما هي نتيجة المقارنة؟", code: "console.log(10 == '10');", options: ["true", "false", "undefined", "Error"], answer: 0 },
+    { q: "ماذا يطبع الكود التالي؟", code: "function hi() {\n  return 'Welcome';\n}\nconsole.log(hi());", options: ["Welcome", "hi", "Error", "undefined"], answer: 0 },
+    { q: "كيف نقرب الرقم للأصغر؟", code: "// اختر الدالة الصحيحة", options: ["Math.ceil()", "Math.floor()", "Math.max()", "Math.min()"], answer: 1 },
+    { q: "ما نتيجة 10 % 3؟", code: "console.log(10 % 3);", options: ["1", "3", "0", "10"], answer: 0 },
+    { q: "ماذا سيطبع الشرط؟", code: "if (false) {\n  console.log('A');\n} else {\n  console.log('B');\n}", options: ["A", "B", "false", "Error"], answer: 1 },
+    { q: "ما نوع البيانات لـ '100'؟", code: "typeof '100';", options: ["number", "string", "boolean", "object"], answer: 1 },
+    { q: "ما نتيجة Math.round(2.1)؟", code: "console.log(Math.round(2.1));", options: ["2", "3", "2.1", "0"], answer: 0 }
+];
+
+let index = 0, answers = Array(20).fill(null), time = 40 * 60, timerInterval;
+
+function toggleTheme() { document.body.classList.toggle('dark-mode'); }
+
+function showAdminLogin() { 
+    document.getElementById('admin-login-screen').classList.remove('hidden'); 
+}
+
+function closeScreens() { 
+    document.getElementById('admin-login-screen').classList.add('hidden');
+    document.getElementById('admin-panel').classList.add('hidden');
+}
+
+function loginAdmin() {
+    if(document.getElementById('adminCode').value === "nannannan") {
+        document.getElementById('admin-login-screen').classList.add('hidden');
+        document.getElementById('admin-panel').classList.remove('hidden');
+        loadTable();
+    } else { alert("كود خاطئ!"); }
+}
+
+function loadTable() {
+    const res = JSON.parse(localStorage.getItem('tofas_db') || "[]");
+    document.querySelector("#resultsTable tbody").innerHTML = res.map(r => `<tr><td>${r.name}</td><td>${r.phone}</td><td>${r.score}</td></tr>`).join('');
+}
+
+function resetMyAdmin() {
+    const name = localStorage.getItem('last_name');
+    if(!name) return alert("لا توجد نتيجة مسجلة حالياً!");
+    let db = JSON.parse(localStorage.getItem('tofas_db') || "[]");
+    localStorage.setItem('tofas_db', JSON.stringify(db.filter(r => r.name !== name)));
+    localStorage.removeItem('finished');
+    alert("تم حذف نتيجتك.. الصفحة ستفتح لك الآن.");
+    location.reload();
+}
+
+function startQuiz() {
+    const name = document.getElementById('username').value.trim();
+    const phone = document.getElementById('userphone').value.trim();
+    if(!name || !phone) return alert("الرجاء إدخال الاسم ورقم الهاتف!");
+    
+    localStorage.setItem('temp_name', name);
+    localStorage.setItem('temp_phone', phone);
+    document.getElementById('welcome-screen').classList.add('hidden');
+    render();
+    
+    timerInterval = setInterval(() => {
+        let m = Math.floor(time/60), s = time%60;
+        document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        if (time <= 0) finish();
+        time--;
+    }, 1000);
+}
+
+function render() {
+    const d = quizData[index];
+    document.getElementById('qText').innerText = d.q;
+    document.getElementById('qCode').innerText = d.code;
+    document.getElementById('qOptions').innerHTML = d.options.map((o, i) => `
+        <label class="opt-label">
+            <input type="radio" name="ans" ${answers[index] === i ? 'checked' : ''} onclick="answers[${index}]=${i}">
+            <span style="margin-right:10px">${o}</span>
+        </label>
+    `).join('');
+    document.getElementById('nextBtn').innerText = index === 19 ? "إنهاء" : "التالي";
+}
+
+function next() { if(index < 19) { index++; render(); } else finish(); }
+function prev() { if(index > 0) { index--; render(); } }
+
+function finish() {
+    clearInterval(timerInterval);
+    let s = 0;
+    quizData.forEach((q, i) => { if(answers[i] === q.answer) s++; });
+    const scoreStr = (s/20)*100 + "%";
+    
+    let db = JSON.parse(localStorage.getItem('tofas_db') || "[]");
+    db.push({ name: localStorage.getItem('temp_name'), phone: localStorage.getItem('temp_phone'), score: scoreStr });
+    localStorage.setItem('tofas_db', JSON.stringify(db));
+    localStorage.setItem('finished', 'true');
+    localStorage.setItem('last_score', scoreStr);
+    localStorage.setItem('last_name', localStorage.getItem('temp_name'));
+
+    showResults(localStorage.getItem('temp_name'), scoreStr);
+}
+
+function showResults(n, s) {
+    document.getElementById('welcome-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+    document.getElementById('final-name').innerText = "المتسابق: " + n;
+    document.getElementById('final-score').innerText = "الدرجة: " + s;
+    if(s === "100%") document.getElementById('gift-area').innerText = "🎁 ممتاز! تواصل مع محمود: 01283425292";
+}
+
+window.onload = () => {
+    if(localStorage.getItem('finished')) {
+        showResults(localStorage.getItem('last_name'), localStorage.getItem('last_score'));
+    }
+};
+</script>
+</body>
+</html>
